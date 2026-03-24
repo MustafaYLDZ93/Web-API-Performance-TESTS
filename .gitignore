@@ -1,0 +1,48 @@
+# ── Node ────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+
+# ── Playwright ───────────────────────────────────────────────
+reports/playwright/
+reports/playwright-results/
+test-results/
+playwright-report/
+blob-report/
+.playwright-browsers/
+
+# ── Hurl ─────────────────────────────────────────────────────
+reports/api/
+
+# ── k6 ───────────────────────────────────────────────────────
+reports/k6/
+
+# ── Reports (genel) ─────────────────────────────────────────
+reports/
+*.html
+*.json
+!package.json
+!tsconfig*.json
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+
+# ── Env / Secrets ────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key

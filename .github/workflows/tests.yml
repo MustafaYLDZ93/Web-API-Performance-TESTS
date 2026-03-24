@@ -1,0 +1,365 @@
+name: 🧪 All Test Types
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+  workflow_dispatch:
+    inputs:
+
+      # ── Genel ─────────────────────────────────────────────
+      test_suite:
+        description: "Çalıştırılacak test suite"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - web
+          - api
+          - performance
+
+      # ── Playwright ────────────────────────────────────────
+      playwright_tag:
+        description: "Playwright tag (@smoke | @regression | @ui | @network | @critical)"
+        required: false
+        default: ""
+        type: string
+
+      playwright_grep_invert:
+        description: "Playwright — hariç tutulacak tag (örn: @regression)"
+        required: false
+        default: ""
+        type: string
+
+      playwright_project:
+        description: "Playwright browser projesi"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - mobile-safari
+
+      playwright_file:
+        description: "Belirli Playwright dosyası (örn: tests/web/homepage.spec.ts)"
+        required: false
+        default: ""
+        type: string
+
+      # ── Hurl ──────────────────────────────────────────────
+      hurl_glob:
+        description: "Hurl glob pattern"
+        required: false
+        default: "tests/api/**/*.hurl"
+        type: choice
+        options:
+          - "tests/api/**/*.hurl"
+          - "tests/api/posts.hurl"
+          - "tests/api/users.hurl"
+          - "tests/api/auth.hurl"
+          - "tests/api/*auth*.hurl"
+          - "tests/api/posts.hurl tests/api/users.hurl"
+
+      hurl_verbose:
+        description: "Hurl verbose output"
+        required: false
+        default: false
+        type: boolean
+
+      # ── k6 ────────────────────────────────────────────────
+      k6_test:
+        description: "k6 test dosyası"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - load-test
+          - stress-test
+          - spike-test
+
+      k6_vus:
+        description: "k6 Virtual Users sayısı override (örn: 10)"
+        required: false
+        default: ""
+        type: string
+
+      k6_duration:
+        description: "k6 süre override (örn: 30s, 1m)"
+        required: false
+        default: ""
+        type: string
+
+# ============================================================
+jobs:
+# ============================================================
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 1 — Web Tests (Playwright)
+  # Image: mcr.microsoft.com/playwright:v1.58.2-jammy
+  # ──────────────────────────────────────────────────────────
+  web-tests:
+    name: 🌐 Web Tests — Playwright
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-jammy
+      options: --user root
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test_suite == 'all' ||
+      inputs.test_suite == 'web'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install npm dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Create report directories
+        run: mkdir -p reports/playwright reports/playwright-results
+
+      # ── Tüm testler (push/PR veya tag/file belirtilmediğinde) ──
+      - name: Run — tüm testler (npm run test:web)
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          (inputs.playwright_tag == '' &&
+           inputs.playwright_grep_invert == '' &&
+           inputs.playwright_file == '' &&
+           (inputs.playwright_project == 'all' || inputs.playwright_project == ''))
+        run: npx playwright test
+        env:
+          HOME: /root
+
+      # ── workflow_dispatch: dinamik komut ──────────────────
+      - name: Run — workflow_dispatch (tag / project / file)
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          (inputs.playwright_tag != '' ||
+           inputs.playwright_grep_invert != '' ||
+           inputs.playwright_file != '' ||
+           (inputs.playwright_project != 'all' && inputs.playwright_project != ''))
+        run: |
+          CMD="npx playwright test"
+
+          # Browser project filtresi
+          if [ "${{ inputs.playwright_project }}" != "all" ] && [ -n "${{ inputs.playwright_project }}" ]; then
+            CMD="$CMD --project=${{ inputs.playwright_project }}"
+          fi
+
+          # Tag grep filtresi  (@smoke | @regression | @ui | @network | @critical)
+          if [ -n "${{ inputs.playwright_tag }}" ]; then
+            CMD="$CMD --grep '${{ inputs.playwright_tag }}'"
+          fi
+
+          # Grep-invert filtresi
+          if [ -n "${{ inputs.playwright_grep_invert }}" ]; then
+            CMD="$CMD --grep-invert '${{ inputs.playwright_grep_invert }}'"
+          fi
+
+          # Belirli dosya
+          if [ -n "${{ inputs.playwright_file }}" ]; then
+            CMD="$CMD ${{ inputs.playwright_file }}"
+          fi
+
+          echo "▶ $CMD"
+          eval "$CMD"
+        env:
+          HOME: /root
+
+      # ── Artifact: HTML rapor ──────────────────────────────
+      - name: Upload Playwright HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: reports/playwright/
+          retention-days: 30
+
+      - name: Upload Playwright Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results-${{ github.run_number }}
+          path: reports/playwright-results/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 2 — API Tests (Hurl 7.1.0)
+  # ──────────────────────────────────────────────────────────
+  api-tests:
+    name: 🔗 API Tests — Hurl
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test_suite == 'all' ||
+      inputs.test_suite == 'api'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Hurl 7.1.0
+        run: |
+          curl -LO https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb
+          sudo dpkg -i hurl_7.1.0_amd64.deb
+          hurl --version
+
+      - name: Create report directory
+        run: mkdir -p reports/api
+
+      # ── Tüm testler — glob: tests/api/**/*.hurl ───────────
+      - name: Run — tüm API testleri (npm run test:api)
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          inputs.hurl_glob == 'tests/api/**/*.hurl' ||
+          inputs.hurl_glob == ''
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG --glob 'tests/api/**/*.hurl' --report-html reports/api
+
+      # ── Tekil dosya: posts.hurl ───────────────────────────
+      - name: Run — posts.hurl
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.hurl_glob == 'tests/api/posts.hurl'
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG tests/api/posts.hurl --report-html reports/api
+
+      # ── Tekil dosya: users.hurl ───────────────────────────
+      - name: Run — users.hurl
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.hurl_glob == 'tests/api/users.hurl'
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG tests/api/users.hurl --report-html reports/api
+
+      # ── Tekil dosya: auth.hurl ────────────────────────────
+      - name: Run — auth.hurl
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.hurl_glob == 'tests/api/auth.hurl'
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG tests/api/auth.hurl --report-html reports/api
+
+      # ── Glob: *auth*.hurl ─────────────────────────────────
+      - name: Run — glob *auth*.hurl
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.hurl_glob == 'tests/api/*auth*.hurl'
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG --glob 'tests/api/*auth*.hurl' --report-html reports/api
+
+      # ── Çoklu dosya: posts + users ────────────────────────
+      - name: Run — posts.hurl + users.hurl
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.hurl_glob == 'tests/api/posts.hurl tests/api/users.hurl'
+        run: |
+          VERBOSE_FLAG=""
+          [ "${{ inputs.hurl_verbose }}" = "true" ] && VERBOSE_FLAG="--verbose"
+          hurl --test $VERBOSE_FLAG tests/api/posts.hurl tests/api/users.hurl --report-html reports/api
+
+      # ── Artifact ──────────────────────────────────────────
+      - name: Upload Hurl HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hurl-report-${{ github.run_number }}
+          path: reports/api/
+          retention-days: 30
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 3 — Performance Tests (k6)
+  # ──────────────────────────────────────────────────────────
+  perf-tests:
+    name: ⚡ Performance Tests — k6
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test_suite == 'all' ||
+      inputs.test_suite == 'performance'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Create report directory
+        run: mkdir -p reports/k6
+
+      # ── Tüm k6 testleri ───────────────────────────────────
+      - name: Run — load-test.js
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          inputs.k6_test == 'all' ||
+          inputs.k6_test == '' ||
+          inputs.k6_test == 'load-test'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.k6_vus }}" ]      && ARGS="$ARGS --vus ${{ inputs.k6_vus }}"
+          [ -n "${{ inputs.k6_duration }}" ] && ARGS="$ARGS --duration ${{ inputs.k6_duration }}"
+          echo "▶ k6 run $ARGS tests/performance/load-test.js"
+          k6 run $ARGS tests/performance/load-test.js
+
+      - name: Run — stress-test.js
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          inputs.k6_test == 'all' ||
+          inputs.k6_test == '' ||
+          inputs.k6_test == 'stress-test'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.k6_vus }}" ]      && ARGS="$ARGS --vus ${{ inputs.k6_vus }}"
+          [ -n "${{ inputs.k6_duration }}" ] && ARGS="$ARGS --duration ${{ inputs.k6_duration }}"
+          echo "▶ k6 run $ARGS tests/performance/stress-test.js"
+          k6 run $ARGS tests/performance/stress-test.js
+
+      - name: Run — spike-test.js
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          inputs.k6_test == 'all' ||
+          inputs.k6_test == '' ||
+          inputs.k6_test == 'spike-test'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.k6_vus }}" ]      && ARGS="$ARGS --vus ${{ inputs.k6_vus }}"
+          [ -n "${{ inputs.k6_duration }}" ] && ARGS="$ARGS --duration ${{ inputs.k6_duration }}"
+          echo "▶ k6 run $ARGS tests/performance/spike-test.js"
+          k6 run $ARGS tests/performance/spike-test.js
+
+      # ── Artifact ──────────────────────────────────────────
+      - name: Upload k6 Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-reports-${{ github.run_number }}
+          path: reports/k6/
+          retention-days: 30

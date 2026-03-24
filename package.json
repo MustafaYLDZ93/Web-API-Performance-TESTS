@@ -1,0 +1,28 @@
+{
+  "name": "all-test-types",
+  "version": "1.0.0",
+  "description": "Unified test suite: Playwright (web) + Hurl (API) + k6 (performance)",
+  "scripts": {
+    "test": "npm run test:web && npm run test:api && npm run test:perf",
+
+    "test:web": "playwright test",
+    "test:web:headed": "playwright test --headed",
+    "test:web:ui": "playwright test --ui",
+    "test:web:debug": "playwright test --debug",
+    "test:web:file": "playwright test",
+
+    "test:api": "hurl --test --glob 'tests/api/**/*.hurl'",
+    "test:api:file": "hurl --test",
+    "test:api:verbose": "hurl --test --verbose --glob 'tests/api/**/*.hurl'",
+    "test:api:report": "hurl --test --glob 'tests/api/**/*.hurl' --report-html reports/api",
+
+    "test:perf": "node scripts/k6-runner.mjs",
+    "test:perf:file": "k6 run",
+    "test:perf:cloud": "k6 run --vus 10 --duration 30s",
+
+    "report": "playwright show-report reports/playwright"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.52.0"
+  }
+}
