@@ -286,6 +286,9 @@ jobs:
   perf-tests:
     name: ⚡ Performance Tests — k6
     runs-on: ubuntu-latest
+    container:
+      image: grafana/k6:latest
+      options: --entrypoint /bin/sh --user root
     if: >-
       github.event_name != 'workflow_dispatch' ||
       inputs.test_suite == 'all' ||
@@ -294,9 +297,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install k6
-        uses: grafana/setup-k6-action@v1
 
       - name: Create report directory
         run: mkdir -p reports/k6
