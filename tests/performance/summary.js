@@ -2,14 +2,11 @@
  * k6 handleSummary helper — tüm test dosyaları bu modülü import eder.
  * Her test bitişinde reports/k6/<testName>-report.html ve .json üretir.
  */
-import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
-
 export function generateSummary(testName) {
   return function (data) {
     return {
       [`reports/k6/${testName}-report.json`]: JSON.stringify(data, null, 2),
       [`reports/k6/${testName}-report.html`]: htmlReport(data, testName),
-      stdout: '\n' + textSummary(data, { indent: '  ', enableColors: true }),
     };
   };
 }
