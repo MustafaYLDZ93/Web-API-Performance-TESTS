@@ -21,7 +21,6 @@ reports/k6/
 
 # ── Reports (genel) ─────────────────────────────────────────
 reports/
-*.html
 *.json
 !package.json
 !package-lock.json
