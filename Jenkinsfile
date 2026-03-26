@@ -103,7 +103,7 @@ pipeline {
             steps {
                 echo '📥 GitHub\'dan kaynak kod çekiliyor...'
                 dir("${REPO_DIR}") {
-                    sh 'git pull origin main'
+                    sh 'git checkout main && git pull origin main'
                 }
             }
         }
