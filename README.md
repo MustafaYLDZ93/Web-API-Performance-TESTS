@@ -1,5 +1,11 @@
 # Web-API-Performance-TESTS
 
+[![GitHub Pages](https://img.shields.io/badge/Guide-Live%20%F0%9F%93%96-brightgreen)](https://mustafayldz93.github.io/Web-API-Performance-TESTS/)
+[![Playwright](https://img.shields.io/badge/Playwright-1.58.2-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
+[![Hurl](https://img.shields.io/badge/Hurl-7.1.0-FF6B35?logo=curl&logoColor=white)](https://hurl.dev)
+[![k6](https://img.shields.io/badge/k6-Performance-7D64FF?logo=k6&logoColor=white)](https://k6.io)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
 Tek repo altında üç farklı test tipi: **Playwright** (web) · **Hurl** (API) · **k6** (performans)
 
 ---
