@@ -86,7 +86,6 @@ pipeline {
     // ── Seçenekler ───────────────────────────────────────────
     options {
         timestamps()
-        ansiColor('xterm')
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
