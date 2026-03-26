@@ -5,7 +5,6 @@
 [![Hurl](https://img.shields.io/badge/Hurl-7.1.0-FF6B35?logo=curl&logoColor=white)](https://hurl.dev)
 [![k6](https://img.shields.io/badge/k6-Performance-7D64FF?logo=k6&logoColor=white)](https://k6.io)
 [![CI](https://github.com/MustafaYLDZ93/Web-API-Performance-TESTS/actions/workflows/tests.yml/badge.svg)](https://github.com/MustafaYLDZ93/Web-API-Performance-TESTS/actions/workflows/tests.yml)
-[![Jenkins](https://img.shields.io/badge/Jenkins-Local%20CI-D24939?logo=jenkins&logoColor=white)](http://localhost:8080/job/All-Test-Types/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 Tek repo altında üç farklı test tipi: **Playwright** (web) · **Hurl** (API) · **k6** (performans)
