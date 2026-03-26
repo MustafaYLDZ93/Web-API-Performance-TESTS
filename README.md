@@ -4,6 +4,7 @@
 [![Playwright](https://img.shields.io/badge/Playwright-1.58.2-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
 [![Hurl](https://img.shields.io/badge/Hurl-7.1.0-FF6B35?logo=curl&logoColor=white)](https://hurl.dev)
 [![k6](https://img.shields.io/badge/k6-Performance-7D64FF?logo=k6&logoColor=white)](https://k6.io)
+[![Jenkins](https://img.shields.io/badge/Jenkins-Local%20CI-D24939?logo=jenkins&logoColor=white)](http://localhost:8080/job/All-Test-Types/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 Tek repo altında üç farklı test tipi: **Playwright** (web) · **Hurl** (API) · **k6** (performans)
@@ -105,6 +106,32 @@ k6 run tests/performance/load-test.js
 k6 run tests/performance/stress-test.js
 k6 run tests/performance/spike-test.js
 ```
+
+---
+
+## Jenkins (Local CI)
+
+Local Jenkins pipeline — GitHub Actions ile aynı parametre yapısı.
+
+```
+http://localhost:8080/job/All-Test-Types/
+```
+
+**Başlatma:** Jenkins → All-Test-Types → Parametrelerle Çalıştır
+
+| Parametre | Seçenekler |
+|-----------|-----------|
+| `TEST_SUITE` | all / web / api / performance |
+| `PLAYWRIGHT_TAG` | @smoke, @regression, @ui, @network, @critical |
+| `PLAYWRIGHT_PROJECT` | all / chromium / firefox / mobile-safari |
+| `PLAYWRIGHT_FILE` | belirli .spec.ts dosyası |
+| `HURL_GLOB` | glob pattern seçimi |
+| `HURL_VERBOSE` | detaylı çıktı |
+| `K6_TEST` | all / load-test / stress-test / spike-test |
+| `K6_VUS` | Virtual User sayısı override |
+| `K6_DURATION` | süre override (örn: 30s) |
+
+> Raporlar build sonunda **Artifacts** olarak arşivlenir.
 
 ---
 
