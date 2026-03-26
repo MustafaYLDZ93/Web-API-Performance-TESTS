@@ -4,7 +4,12 @@
 // ============================================================
 
 pipeline {
-    agent any
+    agent {
+        node {
+            label 'built-in'
+            customWorkspace '/Users/musti/Desktop/All-Test-Types'
+        }
+    }
 
     // ── Parametreler (GitHub Actions inputs ile birebir) ────
     parameters {
